@@ -129,7 +129,7 @@
         .veggie-info {
             font-size: 0.9rem;
             color: #666;
-            margin-bottom: auto; /* ボタンを下に押し下げる */
+            margin-bottom: auto;
         }
 
         .show-grow-btn {
@@ -274,7 +274,6 @@
         // ==========================================
         // Firebase Configuration
         // ==========================================
-        // ここに自分のconfigを貼る
         const firebaseConfig = {
            apiKey: "AIzaSyALTI0b6viJl5K8AhciTcBTQCxG0SqcnQY",
  　　　　　 authDomain: "sanchi-33659.firebaseapp.com",
@@ -284,27 +283,33 @@
   　　　　　appId: "1:906652841467:web:0d7be5e131a74917c2875e"
         };
 
-        let db = null;
+        // ダミー値がそのままになっているか、空の場合を厳密に判定
         let isPreviewMode = false;
+        if (!firebaseConfig || Object.keys(firebaseConfig).length === 0 || 
+            (firebaseConfig.apiKey && firebaseConfig.apiKey.includes("YOUR_"))) {
+            isPreviewMode = true;
+        }
         
-        // プレビューモード用のローカルデータ
+        let db = null;
         let localComments = [
-            { text: "Firebase configが設定されていないため、現在のプレビューモードです。" },
+            { text: "プレビューモードでのテストコメントです！投稿ボタンを押して試してみてください。" },
             { text: "かぼちゃのホクホク感がたまりませんでした！また買います。" },
             { text: "本当に無農薬なんですね。安心して子供に食べさせられます。" }
         ];
 
-        try {
-            if(firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+        // プレビューモードでない場合のみFirebaseを初期化
+        if (!isPreviewMode) {
+            try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
-            } else {
-                isPreviewMode = true;
-                document.getElementById('preview-badge').style.display = 'inline-block';
+            } catch (error) {
+                console.error("Firebase初期化エラー:", error);
+                isPreviewMode = true; // 初期化失敗時もプレビューモードにフォールバック
             }
-        } catch (error) {
-            console.error("Firebase初期化エラー:", error);
-            isPreviewMode = true;
+        }
+
+        // プレビューモードならバッジを表示
+        if (isPreviewMode) {
             document.getElementById('preview-badge').style.display = 'inline-block';
         }
 
@@ -367,11 +372,11 @@
         async function loadComments() {
             // プレビューモード時の動作
             if (isPreviewMode) {
-                commentList.innerHTML = ''; // リストをクリア
+                commentList.innerHTML = '';
                 localComments.forEach((data) => {
                     const li = document.createElement('li');
                     li.className = 'comment-item';
-                    li.textContent = data.text; // 【絶対に守る条件】ユーザー入力を表示するときは textContent を使う
+                    li.textContent = data.text; // セキュリティのためtextContentを使用
                     commentList.appendChild(li);
                 });
                 return;
@@ -381,7 +386,6 @@
             if (!db) return;
 
             try {
-                // createdAt で降順（新しい順）に取得
                 const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
                 
@@ -396,10 +400,7 @@
                     const data = doc.data();
                     const li = document.createElement('li');
                     li.className = 'comment-item';
-                    
-                    // 【絶対に守る条件】ユーザー入力を表示するときは textContent を使う
-                    li.textContent = data.text;
-                    
+                    li.textContent = data.text; // セキュリティのためtextContentを使用
                     commentList.appendChild(li);
                 });
             } catch (error) {
@@ -407,7 +408,7 @@
                 if (error.code === 'failed-precondition') {
                     commentList.innerHTML = '<li class="loading-text">コメントの表示にはFirestoreのインデックス作成が必要です。コンソールに表示されたURLから作成してください。</li>';
                 } else {
-                    commentList.innerHTML = '<li class="loading-text">コメントの取得に失敗しました。</li>';
+                    commentList.innerHTML = '<li class="loading-text">データベースからのコメント取得に失敗しました。</li>';
                 }
             }
         }
@@ -422,23 +423,30 @@
             submitBtn.disabled = true;
             submitBtn.textContent = '送信中...';
 
-            // プレビューモード時の動作（ローカル配列の先頭に追加）
+            // プレビューモード時の動作（ローカル配列の先頭に追加して即時反映）
             if (isPreviewMode) {
                 setTimeout(() => {
                     localComments.unshift({ text: text });
                     commentInput.value = '';
                     loadComments();
+                    
+                    // ボタンのロックを確実に解除
                     submitBtn.disabled = false;
                     submitBtn.textContent = '投稿する';
-                }, 400); // 通信風のディレイ
+                }, 400); // リアルな通信っぽく見せるためのウェイト
                 return;
             }
 
-            // Firebase接続時の動作
-            if (!db) return;
+            // 本番環境だがdbが存在しない場合のエラーハンドリング
+            if (!db) {
+                alert('データベースが正しく設定されていません。');
+                submitBtn.disabled = false;
+                submitBtn.textContent = '投稿する';
+                return;
+            }
 
             try {
-                // コメントを保存
+                // コメントをFirestoreに保存
                 await addDoc(collection(db, "comments"), {
                     text: text,
                     createdAt: serverTimestamp()
@@ -448,14 +456,15 @@
                 await loadComments();
             } catch (error) {
                 console.error("コメント追加エラー:", error);
-                alert('コメントの送信に失敗しました。');
+                alert('コメントの送信に失敗しました。Firestoreのセキュリティルール設定などをご確認ください。');
             } finally {
+                // 成功・失敗に関わらず、必ずボタンのロックを解除する
                 submitBtn.disabled = false;
                 submitBtn.textContent = '投稿する';
             }
         });
 
-        // 初期読み込み
+        // 初期読み込みの実行
         loadComments();
 
     </script>
