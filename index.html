@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極上有機野菜 | プレミアムファーム</title>
+    <style>
+        /* 水色をベースにしたデザイン */
+        :root {
+            --bg-color: #e1f5fe;
+            --primary-color: #0288d1;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --accent-color: #ff9800;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 4rem 1rem;
+            overflow: hidden;
+        }
+
+        /* ドンッ！というインパクトのあるアニメーション */
+        .don-impact {
+            font-size: 3rem;
+            margin: 0;
+            font-weight: 900;
+            opacity: 0;
+            transform: scale(3);
+            animation: don-animation 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .sub-impact {
+            font-size: 1.2rem;
+            margin-top: 1rem;
+            font-weight: bold;
+            color: #fffde7;
+            opacity: 0;
+            animation: fade-in 1s ease-out 0.5s forwards;
+        }
+
+        @keyframes don-animation {
+            0% { opacity: 0; transform: scale(3) translateY(-50px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        @keyframes fade-in {
+            to { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .message-box {
+            background: white;
+            border: 4px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .message-box h2 {
+            color: var(--primary-color);
+            margin-top: 0;
+        }
+
+        /* 野菜グリッド */
+        .veggie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .veggie-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .veggie-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .veggie-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .show-grow-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .show-grow-btn:hover {
+            background-color: #0277bd;
+        }
+
+        /* 育て方の詳細（初期状態は非表示） */
+        .grow-detail {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f1f8e9;
+            border-left: 4px solid #8bc34a;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            text-align: left;
+            animation: slide-down 0.3s ease-out;
+        }
+
+        @keyframes slide-down {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* コメントセクション */
+        .comment-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .comment-input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid var(--bg-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .submit-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .comment-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .comment-item {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comment-item:last-child {
+            border-bottom: none;
+        }
+
+        .loading-text {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="don-impact">妥協ゼロの有機野菜。</h1>
+        <p class="sub-impact">値段は高い。しかし、品質は絶対保証。</p>
+    </header>
+
+    <div class="container">
+        <section class="message-box">
+            <h2>完全無農薬・有機栽培</h2>
+            <p>私たちが育てる野菜は、農薬や化学肥料を一切使用していません。<br>
+            土づくりに何年もかけ、自然の力を最大限に引き出した究極の野菜たちです。<br>
+            スーパーの野菜よりお値段は張りますが、一口食べればその理由がわかります。</p>
+        </section>
+
+        <section class="veggie-grid" id="veggie-container">
+            </section>
+
+        <section class="comment-section">
+            <h2 style="color: var(--primary-color);">お客様の声・ご期待のコメント</h2>
+            <form id="comment-form" class="comment-form">
+                <input type="text" id="comment-input" class="comment-input" placeholder="野菜への期待や感想を書き込んでください！" required>
+                <button type="submit" class="submit-btn">投稿する</button>
+            </form>
+            
+            <ul id="comment-list" class="comment-list">
+                <li class="loading-text">コメントを読み込み中...</li>
+            </ul>
+        </section>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+
+        // ==========================================
+        // Firebase Configuration
+        // ==========================================
+        // ここに自分のconfigを貼る
+        const firebaseConfig = {
+            // apiKey: "YOUR_API_KEY",
+            // authDomain: "YOUR_AUTH_DOMAIN",
+            // projectId: "YOUR_PROJECT_ID",
+            // storageBucket: "YOUR_STORAGE_BUCKET",
+            // messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            // appId: "YOUR_APP_ID"
+        };
+
+        // Firebase初期化 (configが空の場合はダミー動作になるようエラーハンドリング)
+        let db = null;
+        try {
+            if(Object.keys(firebaseConfig).length > 0) {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+            }
+        } catch (error) {
+            console.error("Firebase初期化エラー:", error);
+        }
+
+        // ==========================================
+        // UI Logic: 野菜の描画と「育て方」開閉
+        // ==========================================
+        const vegetables = [
+            "トマト", "ナス", "小玉スイカ", "メロン", "ピーマン", 
+            "バジル", "とうもろこし", "じゃがいも", "かぼちゃ", "ダイコン"
+        ];
+
+        const veggieContainer = document.getElementById('veggie-container');
+
+        vegetables.forEach(veggie => {
+            const card = document.createElement('div');
+            card.className = 'veggie-card';
+            
+            card.innerHTML = `
+                <div class="veggie-name">${veggie}</div>
+                <p>完全無農薬 / 特級品</p>
+                <button class="show-grow-btn">どのように育てたか見る</button>
+                <div class="grow-detail">
+                    手作業で害虫を取り除き、自家製の有機堆肥だけを贅沢に使用。太陽の光をたっぷり浴びて、甘みと旨みが極限まで凝縮された最高傑作です。
+                </div>
+            `;
+            veggieContainer.appendChild(card);
+        });
+
+        // アコーディオン動作
+        document.querySelectorAll('.show-grow-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const detail = e.target.nextElementSibling;
+                if (detail.style.display === 'block') {
+                    detail.style.display = 'none';
+                    e.target.textContent = 'どのように育てたか見る';
+                } else {
+                    detail.style.display = 'block';
+                    e.target.textContent = '閉じる';
+                }
+            });
+        });
+
+        // ==========================================
+        // Firestore Logic: コメントの投稿と取得
+        // ==========================================
+        const commentForm = document.getElementById('comment-form');
+        const commentInput = document.getElementById('comment-input');
+        const commentList = document.getElementById('comment-list');
+
+        // コメント一覧を取得して表示する関数
+        async function loadComments() {
+            if (!db) {
+                commentList.innerHTML = '<li class="loading-text">Firebaseの設定が完了していません。コード内の firebaseConfig を設定してください。</li>';
+                return;
+            }
+
+            try {
+                // createdAt で降順（新しい順）に取得
+                const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                commentList.innerHTML = ''; // リストをクリア
+                
+                if (querySnapshot.empty) {
+                    commentList.innerHTML = '<li class="loading-text">まだコメントはありません。一番乗りで感想を書き込みましょう！</li>';
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const li = document.createElement('li');
+                    li.className = 'comment-item';
+                    
+                    // XSS対策: textContentを使用 (innerHTMLに直接ユーザー入力を含めない)
+                    li.textContent = data.text;
+                    
+                    commentList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("コメント取得エラー:", error);
+                commentList.innerHTML = '<li class="loading-text">コメントの取得に失敗しました。インデックスが作成されているか確認してください。</li>';
+            }
+        }
+
+        // コメント送信処理
+        commentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = commentInput.value.trim();
+            
+            if (!text || !db) return;
+
+            const submitBtn = commentForm.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '送信中...';
+
+            try {
+                // コメントを保存
+                await addDoc(collection(db, "comments"), {
+                    text: text,
+                    createdAt: serverTimestamp() // サーバーのタイムスタンプを使用
+                });
+                
+                commentInput.value = ''; // 入力欄をクリア
+                await loadComments(); // リストを再読み込み
+            } catch (error) {
+                console.error("コメント追加エラー:", error);
+                alert('コメントの送信に失敗しました。');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '投稿する';
+            }
+        });
+
+        // 初期読み込み
+        loadComments();
+
+    </script>
+</body>
+</html>
