@@ -175,6 +175,17 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
+        .preview-badge {
+            display: inline-block;
+            background-color: #ff9800;
+            color: white;
+            font-size: 0.8rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
         .comment-form {
             display: flex;
             gap: 1rem;
@@ -244,7 +255,7 @@
             </section>
 
         <section class="comment-section">
-            <h2 style="color: var(--primary-color);">お客様の声・ご期待のコメント</h2>
+            <h2 style="color: var(--primary-color);">お客様の声・ご期待のコメント <span id="preview-badge" class="preview-badge" style="display: none;">プレビューモード</span></h2>
             <form id="comment-form" class="comment-form">
                 <input type="text" id="comment-input" class="comment-input" placeholder="野菜への期待や感想を書き込んでください！" required>
                 <button type="submit" class="submit-btn">投稿する</button>
@@ -266,22 +277,35 @@
         // ここに自分のconfigを貼る
         const firebaseConfig = {
            apiKey: "AIzaSyALTI0b6viJl5K8AhciTcBTQCxG0SqcnQY",
-  　　　　　authDomain: "sanchi-33659.firebaseapp.com",
+ 　　　　　 authDomain: "sanchi-33659.firebaseapp.com",
   　　　　　projectId: "sanchi-33659",
   　　　　　storageBucket: "sanchi-33659.firebasestorage.app",
   　　　　　messagingSenderId: "906652841467",
   　　　　　appId: "1:906652841467:web:0d7be5e131a74917c2875e"
         };
 
-        // Firebase初期化 (configが空の場合はダミー動作になるようエラーハンドリング)
         let db = null;
+        let isPreviewMode = false;
+        
+        // プレビューモード用のローカルデータ
+        let localComments = [
+            { text: "Firebase configが設定されていないため、現在のプレビューモードです。" },
+            { text: "かぼちゃのホクホク感がたまりませんでした！また買います。" },
+            { text: "本当に無農薬なんですね。安心して子供に食べさせられます。" }
+        ];
+
         try {
             if(firebaseConfig && Object.keys(firebaseConfig).length > 0) {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
+            } else {
+                isPreviewMode = true;
+                document.getElementById('preview-badge').style.display = 'inline-block';
             }
         } catch (error) {
             console.error("Firebase初期化エラー:", error);
+            isPreviewMode = true;
+            document.getElementById('preview-badge').style.display = 'inline-block';
         }
 
         // ==========================================
@@ -341,17 +365,27 @@
 
         // コメント一覧を取得して表示する関数
         async function loadComments() {
-            if (!db) {
-                commentList.innerHTML = '<li class="loading-text">Firebaseの設定が完了していません。コード内の firebaseConfig を設定してください。</li>';
+            // プレビューモード時の動作
+            if (isPreviewMode) {
+                commentList.innerHTML = ''; // リストをクリア
+                localComments.forEach((data) => {
+                    const li = document.createElement('li');
+                    li.className = 'comment-item';
+                    li.textContent = data.text; // 【絶対に守る条件】ユーザー入力を表示するときは textContent を使う
+                    commentList.appendChild(li);
+                });
                 return;
             }
+
+            // Firebase接続時の動作
+            if (!db) return;
 
             try {
                 // createdAt で降順（新しい順）に取得
                 const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
                 
-                commentList.innerHTML = ''; // リストをクリア
+                commentList.innerHTML = '';
                 
                 if (querySnapshot.empty) {
                     commentList.innerHTML = '<li class="loading-text">まだコメントはありません。一番乗りで感想を書き込みましょう！</li>';
@@ -382,22 +416,36 @@
         commentForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = commentInput.value.trim();
-            
-            if (!text || !db) return;
+            if (!text) return;
 
             const submitBtn = commentForm.querySelector('.submit-btn');
             submitBtn.disabled = true;
             submitBtn.textContent = '送信中...';
 
+            // プレビューモード時の動作（ローカル配列の先頭に追加）
+            if (isPreviewMode) {
+                setTimeout(() => {
+                    localComments.unshift({ text: text });
+                    commentInput.value = '';
+                    loadComments();
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '投稿する';
+                }, 400); // 通信風のディレイ
+                return;
+            }
+
+            // Firebase接続時の動作
+            if (!db) return;
+
             try {
                 // コメントを保存
                 await addDoc(collection(db, "comments"), {
                     text: text,
-                    createdAt: serverTimestamp() // サーバーのタイムスタンプを使用
+                    createdAt: serverTimestamp()
                 });
                 
-                commentInput.value = ''; // 入力欄をクリア
-                await loadComments(); // リストを再読み込み
+                commentInput.value = '';
+                await loadComments();
             } catch (error) {
                 console.error("コメント追加エラー:", error);
                 alert('コメントの送信に失敗しました。');
