@@ -12,6 +12,7 @@
             --text-color: #333;
             --card-bg: #ffffff;
             --accent-color: #ff9800;
+            --price-color: #d32f2f;
             --grow-bg: #f1f8e9;
             --grow-border: #8bc34a;
         }
@@ -106,10 +107,23 @@
         }
 
         .veggie-name {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: bold;
             color: var(--primary-color);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .veggie-price {
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .price-num {
+            font-size: 1.8rem;
+            color: var(--price-color);
+            margin: 0 0.2rem;
+            font-family: impact, sans-serif;
+            letter-spacing: 1px;
         }
 
         .veggie-info {
@@ -227,8 +241,7 @@
         </section>
 
         <section class="veggie-grid" id="veggie-container">
-            <!-- 野菜リストはJSで生成します -->
-        </section>
+            </section>
 
         <section class="comment-section">
             <h2 style="color: var(--primary-color);">お客様の声・ご期待のコメント</h2>
@@ -243,7 +256,6 @@
         </section>
     </div>
 
-    <!-- Firebase JS SDK v10 (CDN Module) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
@@ -254,7 +266,7 @@
         // ここに自分のconfigを貼る
         const firebaseConfig = {
            apiKey: "AIzaSyALTI0b6viJl5K8AhciTcBTQCxG0SqcnQY",
- 　　　　　 authDomain: "sanchi-33659.firebaseapp.com",
+  　　　　　authDomain: "sanchi-33659.firebaseapp.com",
   　　　　　projectId: "sanchi-33659",
   　　　　　storageBucket: "sanchi-33659.firebasestorage.app",
   　　　　　messagingSenderId: "906652841467",
@@ -275,18 +287,17 @@
         // ==========================================
         // UI Logic: 野菜の描画と「育て方」開閉
         // ==========================================
-        // 10種類の野菜それぞれの個別の育て方データ
         const vegetables = [
-            { name: "トマト", growDetail: "毎日手作業でわき芽を摘み、一本の主枝に栄養を集中。水やりを極限まで控えることで、トマト自身の生きる力を引き出し、驚異的な甘みと旨みをドンッと凝縮させました。" },
-            { name: "ナス", growDetail: "「肥料食い」のナスには、自家製の完熟ぼかし肥料をふんだんに与え、深い溝施肥で根を広く張らせました。真夏の水分管理を徹底し、色艶が良く、とろけるような果肉に育て上げています。" },
-            { name: "小玉スイカ", growDetail: "親蔓を摘心し、厳選した子蔓3本だけを伸ばして、1株からたった1球だけをドンッと収穫。太陽の光をまんべんなく当てる「玉直し」を何度も行い、皮のキワまで甘い究極の一球です。" },
-            { name: "メロン", growDetail: "病害虫に非常に弱いメロンを、無農薬で育てるのは至難の業。カボチャの台木に接木し、湿度・温度を24時間体制で管理。網目の美しさと、とろけるような甘さ、芳醇な香りを追求した芸術品です。" },
-            { name: "ピーマン", growDetail: "乾燥を嫌うため、株元をマルチで覆い、常に適度な水分を維持。若取りを徹底することで株への負担を減らし、ビタミンたっぷりでピーマン特有の苦味が少ない、肉厚でジューシーな味わいです。" },
-            { name: "バジル", growDetail: "少しでも乾燥すると葉が硬くなるため、水やりは欠かせません。花芽が出たらすぐに切り戻し、新しい柔らかい葉を次々と出させます。香りが最も強くなる午前中に収穫し、ドンッと強い芳香を届けます。" },
-            { name: "とうもろこし", growDetail: "生の米ぬかや自家製堆肥を高カロリーに配合し、初期生育を一気に促進。アワノメイガ対策は手作業での捕殺と雄花の間引き。収穫後1時間で糖度が落ちるため、早朝に収穫し即座にお届けします。" },
-            { name: "じゃがいも", growDetail: "土づくりに2年をかけ、石を取り除いた柔らかい土で育てました。土寄せを何度も行い、日光が当たって青くなるのを防ぐことで、えぐみがなく、ホクホクとした食感と土の香りが活きた仕上がりです。" },
-            { name: "かぼちゃ", growDetail: "広い土地で蔓をのびのびと伸ばし、人工授粉で確実に着果。疫病を防ぐために敷き草を敷き、果梗（ヘタ）がひび割れて完熟するまでじっくり待つことで、ドンッと濃厚な甘みとホクホク感を引き出しました。" },
-            { name: "ダイコン", growDetail: "土を深く耕し、石や肥料の塊を完全に取り除くことで、まっすぐで美しいダイコンに。間引きを段階的に行い、1本1本に栄養を行き渡らせ、きめ細やかでみずみずしい、甘みのある大根です。" }
+            { name: "トマト", price: "500", growDetail: "毎日手作業でわき芽を摘み、一本の主枝に栄養を集中。水やりを極限まで控えることで、トマト自身の生きる力を引き出し、驚異的な甘みと旨みをドンッと凝縮させました。" },
+            { name: "ナス", price: "400", growDetail: "「肥料食い」のナスには、自家製の完熟ぼかし肥料をふんだんに与え、深い溝施肥で根を広く張らせました。真夏の水分管理を徹底し、色艶が良く、とろけるような果肉に育て上げています。" },
+            { name: "小玉スイカ", price: "1,500", growDetail: "親蔓を摘心し、厳選した子蔓3本だけを伸ばして、1株からたった1球だけをドンッと収穫。太陽の光をまんべんなく当てる「玉直し」を何度も行い、皮のキワまで甘い究極の一球です。" },
+            { name: "メロン", price: "2,000", growDetail: "病害虫に非常に弱いメロンを、無農薬で育てるのは至難の業。カボチャの台木に接木し、湿度・温度を24時間体制で管理。網目の美しさと、とろけるような甘さ、芳醇な香りを追求した芸術品です。" },
+            { name: "ピーマン", price: "350", growDetail: "乾燥を嫌うため、株元をマルチで覆い、常に適度な水分を維持。若取りを徹底することで株への負担を減らし、ビタミンたっぷりでピーマン特有の苦味が少ない、肉厚でジューシーな味わいです。" },
+            { name: "バジル", price: "300", growDetail: "少しでも乾燥すると葉が硬くなるため、水やりは欠かせません。花芽が出たらすぐに切り戻し、新しい柔らかい葉を次々と出させます。香りが最も強くなる午前中に収穫し、ドンッと強い芳香を届けます。" },
+            { name: "とうもろこし", price: "600", growDetail: "生の米ぬかや自家製堆肥を高カロリーに配合し、初期生育を一気に促進。アワノメイガ対策は手作業での捕殺と雄花の間引き。収穫後1時間で糖度が落ちるため、早朝に収穫し即座にお届けします。" },
+            { name: "じゃがいも", price: "500", growDetail: "土づくりに2年をかけ、石を取り除いた柔らかい土で育てました。土寄せを何度も行い、日光が当たって青くなるのを防ぐことで、えぐみがなく、ホクホクとした食感と土の香りが活きた仕上がりです。" },
+            { name: "かぼちゃ", price: "800", growDetail: "広い土地で蔓をのびのびと伸ばし、人工授粉で確実に着果。疫病を防ぐために敷き草を敷き、果梗（ヘタ）がひび割れて完熟するまでじっくり待つことで、ドンッと濃厚な甘みとホクホク感を引き出しました。" },
+            { name: "ダイコン", price: "450", growDetail: "土を深く耕し、石や肥料の塊を完全に取り除くことで、まっすぐで美しいダイコンに。間引きを段階的に行い、1本1本に栄養を行き渡らせ、きめ細やかでみずみずしい、甘みのある大根です。" }
         ];
 
         const veggieContainer = document.getElementById('veggie-container');
@@ -295,9 +306,9 @@
             const card = document.createElement('div');
             card.className = 'veggie-card';
             
-            // veggie-name などは固定テキストなのでinnerHTMLを使用
             card.innerHTML = `
                 <div class="veggie-name">${veggie.name}</div>
+                <div class="veggie-price">1袋 <span class="price-num">¥${veggie.price}</span></div>
                 <p class="veggie-info">完全無農薬 / 特級有機栽培</p>
                 <button class="show-grow-btn">どのように育てたか見る</button>
                 <div class="grow-detail">
@@ -359,7 +370,6 @@
                 });
             } catch (error) {
                 console.error("コメント取得エラー:", error);
-                // インデックス未作成の場合のエラーメッセージなどをハンドリング
                 if (error.code === 'failed-precondition') {
                     commentList.innerHTML = '<li class="loading-text">コメントの表示にはFirestoreのインデックス作成が必要です。コンソールに表示されたURLから作成してください。</li>';
                 } else {
