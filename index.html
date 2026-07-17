@@ -34,7 +34,6 @@
             overflow: hidden;
         }
 
-        /* ドンッ！というインパクトのあるアニメーション */
         .don-impact {
             font-size: 3rem;
             margin: 0;
@@ -149,7 +148,6 @@
             background-color: #0277bd;
         }
 
-        /* 育て方の詳細（初期状態は非表示） */
         .grow-detail {
             display: none;
             margin-top: 1rem;
@@ -167,7 +165,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* コメントセクション */
         .comment-section {
             background: white;
             padding: 2rem;
@@ -224,6 +221,7 @@
         .comment-item {
             padding: 1rem;
             border-bottom: 1px solid #eee;
+            animation: fade-in 0.5s;
         }
         
         .comment-item:last-child {
@@ -252,7 +250,8 @@
         </section>
 
         <section class="veggie-grid" id="veggie-container">
-            </section>
+            <!-- 野菜リストはJSで生成します -->
+        </section>
 
         <section class="comment-section">
             <h2 style="color: var(--primary-color);">お客様の声・ご期待のコメント <span id="preview-badge" class="preview-badge" style="display: none;">プレビューモード</span></h2>
@@ -267,23 +266,24 @@
         </section>
     </div>
 
+    <!-- Firebase JS SDK v10 (CDN Module) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        // onSnapshotを追加（リアルタイム動作用）
+        import { getFirestore, collection, addDoc, query, orderBy, serverTimestamp, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         // ==========================================
-        // Firebase Configuration
+        // Firebase Configuration (★ここに自分の設定を貼り付けます)
         // ==========================================
         const firebaseConfig = {
-　　　　// apiKey: "AIzaSyALTI0b6viJl5K8AhciTcBTQCxG0SqcnQY",
-　　　  // authDomain: "sanchi-33659.firebaseapp.com",
- 　     //  projectId: "sanchi-33659",
- 　　　 // storageBucket: "sanchi-33659.firebasestorage.app",
-  　  　// messagingSenderId: "906652841467",
-  　　　// appId: "1:906652841467:web:0d7be5e131a74917c2875e"
+            //   apiKey: "AIzaSyALTI0b6viJl5K8AhciTcBTQCxG0SqcnQY",
+ 　　　　　　// 　authDomain: "sanchi-33659.firebaseapp.com",
+            //   projectId: "sanchi-33659",
+            //   storageBucket: "sanchi-33659.firebasestorage.app",
+            //   messagingSenderId: "906652841467",
+            //  appId: "1:906652841467:web:0d7be5e131a74917c2875e"
         };
 
-        // ダミー値がそのままになっているか、空の場合を厳密に判定
         let isPreviewMode = false;
         if (!firebaseConfig || Object.keys(firebaseConfig).length === 0 || 
             (firebaseConfig.apiKey && firebaseConfig.apiKey.includes("YOUR_"))) {
@@ -292,28 +292,24 @@
         
         let db = null;
         
-        // プレビューモード用の初期コメント設定
         let localComments = [
             { text: "Firebase configが設定されていないため、現在のプレビューモードです。" },
             { text: "かぼちゃのホクホク感がたまりませんでした！また買います。" },
             { text: "本当に無農薬なんですね。安心して子供に食べさせられます。" }
         ];
 
-        // プレビューモードでない場合のみFirebaseを初期化
         if (!isPreviewMode) {
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
             } catch (error) {
                 console.error("Firebase初期化エラー:", error);
-                isPreviewMode = true; // 初期化失敗時もプレビューモードにフォールバック
+                isPreviewMode = true; 
             }
         }
 
-        // プレビューモード時のUI表示切り替え
         if (isPreviewMode) {
             document.getElementById('preview-badge').style.display = 'inline-block';
-            // 入力欄のプロンプト（プレースホルダー）を変更
             document.getElementById('comment-input').placeholder = "Firebase config未設定のためプレビューモードで動作中";
         }
 
@@ -351,7 +347,6 @@
             veggieContainer.appendChild(card);
         });
 
-        // アコーディオン動作
         document.querySelectorAll('.show-grow-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const detail = e.target.nextElementSibling;
@@ -366,33 +361,54 @@
         });
 
         // ==========================================
-        // Firestore Logic: コメントの投稿と取得
+        // Firestore Logic: コメントのリアルタイム同期
         // ==========================================
         const commentForm = document.getElementById('comment-form');
         const commentInput = document.getElementById('comment-input');
         const commentList = document.getElementById('comment-list');
 
-        // コメント一覧を取得して表示する関数
-        async function loadComments() {
-            // プレビューモード時の動作
+        function setupComments() {
             if (isPreviewMode) {
-                commentList.innerHTML = '';
-                localComments.forEach((data) => {
-                    const li = document.createElement('li');
-                    li.className = 'comment-item';
-                    li.textContent = data.text; // セキュリティのためtextContentを使用
-                    commentList.appendChild(li);
+                // プレビューモード：ローカル配列を描画
+                const renderLocal = () => {
+                    commentList.innerHTML = '';
+                    localComments.forEach((data) => {
+                        const li = document.createElement('li');
+                        li.className = 'comment-item';
+                        li.textContent = data.text;
+                        commentList.appendChild(li);
+                    });
+                };
+                renderLocal();
+                
+                // 送信処理（ローカル）
+                commentForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const text = commentInput.value.trim();
+                    if (!text) return;
+                    
+                    const submitBtn = commentForm.querySelector('.submit-btn');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '送信中...';
+                    
+                    setTimeout(() => {
+                        localComments.unshift({ text: text });
+                        commentInput.value = '';
+                        renderLocal();
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '投稿する';
+                    }, 400);
                 });
                 return;
             }
 
-            // Firebase接続時の動作
+            // 本番モード：Firebase リアルタイムリスナー (onSnapshot)
             if (!db) return;
 
-            try {
-                const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
-                const querySnapshot = await getDocs(q);
-                
+            const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
+            
+            // 誰かがコメントを追加したら、自動的にここが実行されて画面が更新されます
+            onSnapshot(q, (querySnapshot) => {
                 commentList.innerHTML = '';
                 
                 if (querySnapshot.empty) {
@@ -402,74 +418,49 @@
 
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
+                    // createdAtがまだサーバーに到達していない（nullの）瞬間を弾く
+                    if(data.createdAt === null) return; 
+
                     const li = document.createElement('li');
                     li.className = 'comment-item';
-                    li.textContent = data.text; // セキュリティのためtextContentを使用
+                    li.textContent = data.text;
                     commentList.appendChild(li);
                 });
-            } catch (error) {
-                console.error("コメント取得エラー:", error);
+            }, (error) => {
+                console.error("リアルタイム同期エラー:", error);
                 if (error.code === 'failed-precondition') {
-                    commentList.innerHTML = '<li class="loading-text">コメントの表示にはFirestoreのインデックス作成が必要です。コンソールに表示されたURLから作成してください。</li>';
-                } else {
-                    commentList.innerHTML = '<li class="loading-text">データベースからのコメント取得に失敗しました。</li>';
+                    commentList.innerHTML = '<li class="loading-text">表示にはFirestoreのインデックス作成が必要です。コンソールのURLから作成してください。</li>';
                 }
-            }
-        }
+            });
 
-        // コメント送信処理
-        commentForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = commentInput.value.trim();
-            if (!text) return;
+            // 送信処理（Firebaseへ保存）
+            commentForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = commentInput.value.trim();
+                if (!text) return;
 
-            const submitBtn = commentForm.querySelector('.submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '送信中...';
+                const submitBtn = commentForm.querySelector('.submit-btn');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '送信中...';
 
-            // プレビューモード時の動作（ローカル配列の先頭に追加して即時反映）
-            if (isPreviewMode) {
-                setTimeout(() => {
-                    localComments.unshift({ text: text });
+                try {
+                    await addDoc(collection(db, "comments"), {
+                        text: text,
+                        createdAt: serverTimestamp()
+                    });
+                    // 保存成功したら入力欄を空にするだけ（画面更新はonSnapshotが自動でやってくれます）
                     commentInput.value = '';
-                    loadComments();
-                    
-                    // ボタンのロックを確実に解除
+                } catch (error) {
+                    console.error("コメント追加エラー:", error);
+                    alert('コメントの送信に失敗しました。');
+                } finally {
                     submitBtn.disabled = false;
                     submitBtn.textContent = '投稿する';
-                }, 400); // リアルな通信っぽく見せるためのウェイト
-                return;
-            }
+                }
+            });
+        }
 
-            // 本番環境だがdbが存在しない場合のエラーハンドリング
-            if (!db) {
-                alert('データベースが正しく設定されていません。');
-                submitBtn.disabled = false;
-                submitBtn.textContent = '投稿する';
-                return;
-            }
-
-            try {
-                // コメントをFirestoreに保存
-                await addDoc(collection(db, "comments"), {
-                    text: text,
-                    createdAt: serverTimestamp()
-                });
-                
-                commentInput.value = '';
-                await loadComments();
-            } catch (error) {
-                console.error("コメント追加エラー:", error);
-                alert('コメントの送信に失敗しました。Firestoreのセキュリティルール設定などをご確認ください。');
-            } finally {
-                // 成功・失敗に関わらず、必ずボタンのロックを解除する
-                submitBtn.disabled = false;
-                submitBtn.textContent = '投稿する';
-            }
-        });
-
-        // 初期読み込みの実行
-        loadComments();
+        setupComments();
 
     </script>
 </body>
